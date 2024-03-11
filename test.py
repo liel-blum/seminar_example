@@ -1,14 +1,23 @@
-import sqlite3
+from flask import Flask, request, session
+import pymysql
 
-def search_database(username):
-    conn = sqlite3.connect('example.db')
-    c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE username = '%s'" % username)
-    result = c.fetchall()
-    conn.close()
-    return result
+@app.route("/login")
+def login():
 
-if __name__ == "__main__":
-    username = input("Enter username to search: ")
-    search_result = search_database(username)
-    print(search_result)
+  username = request.values.get('username')
+  password = request.values.get('password')
+
+  # Prepare database connection
+  db = pymysql.connect("localhost")
+  cursor = db.cursor()
+
+  # Execute the vulnerable SQL query concatenating user-provided input.
+  cursor.execute("SELECT * FROM users WHERE username = '%s' AND password = '%s'" % (username, password))
+
+  # If the query returns any matching record, consider the current user logged in.
+  record = cursor.fetchone()
+  if record:
+    session['logged_user'] = username
+
+  # disconnect from server
+  db.close()
